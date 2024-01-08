@@ -17,21 +17,24 @@ export const register = async (values: RegisterActionType) => {
 
   const { email, name, password } = validatedFields.data;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const existingUser = await getUserByEmail(email);
+    if (existingUser) {
+      return { error: "Email already in use!" };
+    }
 
-  const existingUser = await getUserByEmail(email);
+    await db.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword,
+      },
+    });
 
-  if (existingUser) {
-    return { error: "Email already in use!" };
+    return { success: "User created!" };
+  } catch (er) {
+    console.log(er);
+    return { error: "Something went wrong, please try again later" };
   }
-
-  await db.user.create({
-    data: {
-      email,
-      name,
-      password: hashedPassword,
-    },
-  });
-
-  return { success: "User created!" };
 };
