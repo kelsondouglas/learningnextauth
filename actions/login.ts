@@ -5,6 +5,9 @@ import { LoginSchema } from "@/schemas";
 import { signIn } from "@/auth";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { AuthError } from "next-auth";
+import { getUserByEmail } from "@/data/user";
+import { generateVerificationToken } from "@/data/token";
+import { sendVerificationEmail } from "@/lib/mail";
 
 type LoginActionType = z.infer<typeof LoginSchema>;
 
@@ -16,6 +19,28 @@ export const login = async (values: LoginActionType) => {
   }
 
   const { email, password } = validatedFields.data;
+
+  const existingUser = await getUserByEmail(email);
+
+  if (!existingUser || !existingUser.email || !existingUser.password) {
+    return { error: "Account not registered." };
+  }
+
+  if (!existingUser.emailVerified) {
+    const verificationToken = await generateVerificationToken(
+      existingUser.email
+    );
+
+    await sendVerificationEmail(
+      verificationToken.email,
+      verificationToken.token
+    );
+
+    return {
+      error:
+        "Account not verified yet, another verification code was sent to your email.",
+    };
+  }
 
   try {
     await signIn("credentials", {
