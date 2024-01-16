@@ -18,11 +18,14 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { FormError } from "../form-error";
 import { FormSuccess } from "../form-success";
-import { reset } from "@/actions/reset";
+import { newPassword } from "@/actions/new-password";
+import { useSearchParams } from "next/navigation";
 
 type NewPasswordInputs = z.infer<typeof NewPasswordSchema>;
 
 const NewPasswordForm = () => {
+  const params = useSearchParams();
+  const token = params.get("token");
   const [isPending, setTransition] = useTransition();
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
@@ -39,13 +42,16 @@ const NewPasswordForm = () => {
     setError("");
     setSuccess("");
 
-    console.log(values);
+    if (!token) {
+      setError("Token does not exists.");
+      return;
+    }
 
     setTransition(() => {
-      // reset(values).then((data) => {
-      //   setError(data.error);
-      //   setSuccess(data.success);
-      // });
+      newPassword(token, values).then((data) => {
+        setError(data.error);
+        setSuccess(data.success);
+      });
     });
   };
 
